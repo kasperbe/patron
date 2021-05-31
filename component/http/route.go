@@ -7,12 +7,12 @@ import (
 	"os"
 	"strings"
 
-	"golang.org/x/time/rate"
-
 	"github.com/beatlabs/patron/cache"
 	"github.com/beatlabs/patron/component/http/auth"
 	httpcache "github.com/beatlabs/patron/component/http/cache"
 	errs "github.com/beatlabs/patron/errors"
+	"github.com/julienschmidt/httprouter"
+	"golang.org/x/time/rate"
 )
 
 // Route definition of a HTTP route.
@@ -192,6 +192,36 @@ func (rb *RouteBuilder) Build() (Route, error) {
 		handler:     rb.handler,
 		middlewares: middlewares,
 	}, nil
+}
+
+// NewFileServer constructor.
+func NewFileServer(path string, assetsDir string, fallbackPath string) *RouteBuilder {
+	handler := func (w http.ResponseWriter, r *http.Request) {
+		params := httprouter.ParamsFromContext(r.Context())
+		// get the absolute path to prevent directory traversal
+		path := fmt.Sprintf("%s%s", assetsDir, params.ByName("path"))
+		fmt.Println("test", path)
+
+		// check whether a file exists at the given path
+		info, err := os.Stat(path)
+		if os.IsNotExist(err) || info.IsDir() {
+			fmt.Println("Load index file", path, fallbackPath)
+			fmt.Println(os.Getwd())
+			// file does not exist, serve index.html
+			http.ServeFile(w, r, fallbackPath)
+			return
+		} else if err != nil {
+			// if we got an error (that wasn't that the file doesn't exist) stating the
+			// file, return a 500 internal server error and stop
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// otherwise, use http.FileServer to serve the static dir
+		http.ServeFile(w, r, path)
+	}
+
+	return &RouteBuilder{path: path, handler: handler}
 }
 
 // NewRawRouteBuilder constructor.
