@@ -40,7 +40,7 @@ func main() {
 	}
 
 	routesBuilder := patronhttp.NewRoutesBuilder().
-		Append(patronhttp.NewFileServer("/frontend/*path", "examples/http/public", "examples/http/public/index.html").MethodGet()).
+		Append(patronhttp.NewFileServer("/frontend/*path", "examples/http/public", "examples/http/public/index.html")).
 		Append(patronhttp.NewPostRouteBuilder("/api", httpHandler)).
 		Append(patronhttp.NewGetRouteBuilder("/api", getHandler).WithRateLimiting(50, 50))
 

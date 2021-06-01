@@ -196,17 +196,42 @@ func (rb *RouteBuilder) Build() (Route, error) {
 
 // NewFileServer constructor.
 func NewFileServer(path string, assetsDir string, fallbackPath string) *RouteBuilder {
-	handler := func (w http.ResponseWriter, r *http.Request) {
+	var ee []error
+
+	if path == "" {
+		ee = append(ee, errors.New("path is empty"))
+	}
+
+	if assetsDir == "" {
+		ee = append(ee, errors.New("assets path is empty"))
+	} else {
+		_, err := os.Stat(assetsDir)
+		if os.IsNotExist(err) {
+			ee = append(ee, errors.New("assets directory doesn't exist"))
+		} else if err != nil {
+			ee = append(ee, fmt.Errorf("error while checking assets dir: %w", err))
+		}
+	}
+
+	if fallbackPath == "" {
+		ee = append(ee, errors.New("fallback path is empty"))
+	} else {
+		_, err := os.Stat(fallbackPath)
+		if os.IsNotExist(err) {
+			ee = append(ee, errors.New("fallback file doesn't exist"))
+		} else if err != nil {
+			ee = append(ee, fmt.Errorf("error while checking fallback file: %w", err))
+		}
+	}
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
 		params := httprouter.ParamsFromContext(r.Context())
 		// get the absolute path to prevent directory traversal
 		path := fmt.Sprintf("%s%s", assetsDir, params.ByName("path"))
-		fmt.Println("test", path)
 
 		// check whether a file exists at the given path
 		info, err := os.Stat(path)
 		if os.IsNotExist(err) || info.IsDir() {
-			fmt.Println("Load index file", path, fallbackPath)
-			fmt.Println(os.Getwd())
 			// file does not exist, serve index.html
 			http.ServeFile(w, r, fallbackPath)
 			return
@@ -217,11 +242,11 @@ func NewFileServer(path string, assetsDir string, fallbackPath string) *RouteBui
 			return
 		}
 
-		// otherwise, use http.FileServer to serve the static dir
+		// otherwise, use server the specific file directly from the filesystem.
 		http.ServeFile(w, r, path)
 	}
 
-	return &RouteBuilder{path: path, handler: handler}
+	return &RouteBuilder{path: path, errors: ee, handler: handler, method: http.MethodGet}
 }
 
 // NewRawRouteBuilder constructor.
