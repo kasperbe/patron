@@ -11,7 +11,6 @@ import (
 	"github.com/beatlabs/patron/component/http/auth"
 	httpcache "github.com/beatlabs/patron/component/http/cache"
 	errs "github.com/beatlabs/patron/errors"
-	"github.com/julienschmidt/httprouter"
 	"golang.org/x/time/rate"
 )
 
@@ -225,9 +224,10 @@ func NewFileServer(path string, assetsDir string, fallbackPath string) *RouteBui
 	}
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		params := httprouter.ParamsFromContext(r.Context())
+		params := ExtractParams(r)
+
 		// get the absolute path to prevent directory traversal
-		path := fmt.Sprintf("%s%s", assetsDir, params.ByName("path"))
+		path := fmt.Sprintf("%s%s", assetsDir, params["path"])
 
 		// check whether a file exists at the given path
 		info, err := os.Stat(path)
