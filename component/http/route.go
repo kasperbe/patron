@@ -238,7 +238,7 @@ func NewFileServer(path string, assetsDir string, fallbackPath string) *RouteBui
 		} else if err != nil {
 			// if we got an error (that wasn't that the file doesn't exist) stating the
 			// file, return a 500 internal server error and stop
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
 
