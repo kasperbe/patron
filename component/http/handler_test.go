@@ -334,6 +334,8 @@ func Test_fileserverHandler(t *testing.T) {
 			wr := httptest.NewRecorder()
 			router.ServeHTTP(wr, req)
 			br, err := ioutil.ReadAll(wr.Body)
+			require.NoError(t, err)
+
 			assert.Equal(t, tt.expectedResponse, string(br))
 		})
 	}
